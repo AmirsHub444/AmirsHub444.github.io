@@ -1,0 +1,980 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ALPHAFLOW — Institutional Intelligence</title>
+<link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&family=Rajdhani:wght@400;500;600;700&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060810;
+  --bg2: #090c14;
+  --bg3: #0d1120;
+  --bg4: #111827;
+  --bg5: #161e30;
+  --cyan: #00e5ff;
+  --cyan2: #00b8d4;
+  --cyan-dim: rgba(0,229,255,0.08);
+  --cyan-border: rgba(0,229,255,0.2);
+  --amber: #ffab00;
+  --amber-dim: rgba(255,171,0,0.1);
+  --amber-border: rgba(255,171,0,0.25);
+  --red: #ff3d57;
+  --red-dim: rgba(255,61,87,0.1);
+  --green: #00e676;
+  --green-dim: rgba(0,230,118,0.08);
+  --purple: #b388ff;
+  --text: #e0e8f0;
+  --text2: #7a8ba0;
+  --text3: #3a4a5c;
+  --scan: rgba(0,229,255,0.03);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;min-height:100vh;overflow-x:hidden;}
+
+/* SCANLINE EFFECT */
+body::before{content:'';position:fixed;top:0;left:0;right:0;bottom:0;background:repeating-linear-gradient(0deg,transparent,transparent 2px,var(--scan) 2px,var(--scan) 4px);pointer-events:none;z-index:9999;}
+
+/* TICKER */
+.ticker-bar{position:fixed;top:0;left:0;right:0;height:32px;background:var(--bg2);border-bottom:1px solid var(--cyan-border);z-index:1000;overflow:hidden;display:flex;align-items:center;}
+.ticker-id{background:var(--cyan);color:var(--bg);font-family:'Share Tech Mono',monospace;font-size:11px;letter-spacing:3px;padding:0 14px;height:100%;display:flex;align-items:center;flex-shrink:0;}
+.ticker-scroll{display:flex;animation:tick 80s linear infinite;white-space:nowrap;}
+.ticker-bar:hover .ticker-scroll{animation-play-state:paused;}
+@keyframes tick{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.t-item{display:inline-flex;align-items:center;gap:8px;padding:0 18px;border-right:1px solid var(--cyan-border);font-family:'Share Tech Mono',monospace;font-size:11px;}
+.t-sym{color:var(--cyan);}
+.t-px{color:var(--text);}
+.t-up{color:var(--green);}
+.t-dn{color:var(--red);}
+
+/* SIDEBAR */
+.layout{display:flex;min-height:100vh;padding-top:32px;}
+.sidebar{width:220px;background:var(--bg2);border-right:1px solid var(--cyan-border);position:fixed;top:32px;left:0;bottom:0;overflow-y:auto;z-index:100;display:flex;flex-direction:column;}
+.brand{padding:20px 16px 16px;border-bottom:1px solid var(--cyan-border);}
+.brand-name{font-family:'Rajdhani',sans-serif;font-size:22px;font-weight:700;letter-spacing:4px;color:var(--cyan);line-height:1;}
+.brand-sub{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text2);letter-spacing:2px;margin-top:4px;}
+.signal-row{display:flex;align-items:center;gap:6px;margin-top:10px;}
+.pulse{width:6px;height:6px;border-radius:50%;background:var(--green);animation:glow 2s infinite;}
+@keyframes glow{0%,100%{box-shadow:0 0 4px var(--green)}50%{box-shadow:0 0 10px var(--green),0 0 20px var(--green)}}
+.signal-txt{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--green);letter-spacing:2px;}
+
+.nav-section{padding:16px 0;}
+.nav-label{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:2px;padding:0 16px;margin-bottom:8px;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 16px;cursor:pointer;transition:all 0.2s;border-left:2px solid transparent;font-size:13px;color:var(--text2);font-weight:500;}
+.nav-item:hover{color:var(--text);background:var(--cyan-dim);border-left-color:var(--cyan-border);}
+.nav-item.active{color:var(--cyan);background:var(--cyan-dim);border-left-color:var(--cyan);}
+.nav-item .nav-icon{font-size:14px;width:16px;text-align:center;}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-family:'Share Tech Mono',monospace;font-size:9px;padding:2px 6px;border-radius:2px;}
+
+.sidebar-footer{margin-top:auto;padding:16px;border-top:1px solid var(--cyan-border);}
+.threat-bar{background:var(--bg4);border:1px solid var(--amber-border);border-radius:3px;padding:10px;margin-top:8px;}
+.threat-label{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--amber);letter-spacing:1px;margin-bottom:6px;}
+.threat-meter{height:4px;background:var(--bg5);border-radius:2px;overflow:hidden;}
+.threat-fill{height:100%;background:linear-gradient(90deg,var(--green),var(--amber));border-radius:2px;transition:width 1s;}
+
+/* MAIN */
+.main{margin-left:220px;flex:1;padding:24px;min-height:calc(100vh - 32px);}
+.panel{display:none;}
+.panel.active{display:block;}
+
+/* SECTION */
+.sec-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;}
+.sec-title{font-family:'Rajdhani',sans-serif;font-size:24px;font-weight:700;letter-spacing:3px;color:var(--cyan);}
+.sec-meta{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);}
+.divider{height:1px;background:var(--cyan-border);margin:24px 0;}
+
+/* CARDS */
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px;}
+.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:24px;}
+.grid-2{display:grid;grid-template-columns:repeat(2,1fr);gap:14px;margin-bottom:24px;}
+.stat-card{background:var(--bg3);border:1px solid var(--bg5);border-radius:4px;padding:16px;position:relative;overflow:hidden;}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:var(--cyan);opacity:0.4;}
+.stat-card.amber::before{background:var(--amber);}
+.stat-card.red::before{background:var(--red);}
+.stat-card.green::before{background:var(--green);}
+.s-label{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text2);letter-spacing:2px;margin-bottom:8px;}
+.s-val{font-family:'Rajdhani',sans-serif;font-size:26px;font-weight:700;color:var(--text);line-height:1;}
+.s-val.cyan{color:var(--cyan);}
+.s-val.amber{color:var(--amber);}
+.s-val.green{color:var(--green);}
+.s-val.red{color:var(--red);}
+.s-sub{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);margin-top:4px;}
+
+/* SCORE BARS */
+.score-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;}
+.score-lbl{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);width:140px;flex-shrink:0;}
+.score-track{flex:1;height:4px;background:var(--bg5);border-radius:2px;overflow:hidden;}
+.score-fill{height:100%;border-radius:2px;transition:width 1.2s ease;}
+.score-num{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text);width:28px;text-align:right;flex-shrink:0;}
+
+/* TABLE */
+.data-table{width:100%;border-collapse:collapse;font-size:13px;}
+.data-table th{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text2);letter-spacing:2px;text-align:left;padding:10px 12px;border-bottom:1px solid var(--cyan-border);}
+.data-table td{padding:11px 12px;border-bottom:1px solid var(--bg5);vertical-align:middle;}
+.data-table tr:hover td{background:var(--cyan-dim);}
+.data-table tr:last-child td{border-bottom:none;}
+.mono{font-family:'Share Tech Mono',monospace;}
+.up{color:var(--green);}
+.dn{color:var(--red);}
+.neut{color:var(--text2);}
+
+/* TAGS */
+.tag{display:inline-block;font-family:'Share Tech Mono',monospace;font-size:9px;letter-spacing:1px;padding:3px 8px;border-radius:2px;}
+.tag-cyan{background:var(--cyan-dim);color:var(--cyan);border:1px solid var(--cyan-border);}
+.tag-amber{background:var(--amber-dim);color:var(--amber);border:1px solid var(--amber-border);}
+.tag-red{background:var(--red-dim);color:var(--red);border:1px solid rgba(255,61,87,0.25);}
+.tag-green{background:var(--green-dim);color:var(--green);border:1px solid rgba(0,230,118,0.2);}
+.tag-purple{background:rgba(179,136,255,0.1);color:var(--purple);border:1px solid rgba(179,136,255,0.2);}
+
+/* WALLET TRACKER */
+.wallet-card{background:var(--bg3);border:1px solid var(--bg5);border-radius:4px;padding:16px;margin-bottom:12px;transition:border-color 0.2s;}
+.wallet-card:hover{border-color:var(--cyan-border);}
+.wallet-addr{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cyan);word-break:break-all;margin-bottom:10px;}
+.wallet-chain-row{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;}
+.wallet-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.w-stat{background:var(--bg4);border-radius:3px;padding:8px;text-align:center;}
+.w-stat-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text3);letter-spacing:1px;}
+.w-stat-val{font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:600;color:var(--text);margin-top:2px;}
+
+/* TWITTER FEED */
+.tweet-card{background:var(--bg3);border:1px solid var(--bg5);border-radius:4px;padding:16px;margin-bottom:10px;transition:border-color 0.2s;cursor:pointer;}
+.tweet-card:hover{border-color:var(--cyan-border);}
+.tweet-card.alert{border-color:var(--amber-border);background:linear-gradient(135deg,var(--bg3),var(--amber-dim));}
+.tw-header{display:flex;align-items:center;gap:10px;margin-bottom:10px;}
+.tw-av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:700;flex-shrink:0;}
+.tw-handle{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--cyan);}
+.tw-name{font-size:12px;color:var(--text2);}
+.tw-time{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3);margin-left:auto;}
+.tw-body{font-size:13px;line-height:1.7;color:var(--text);}
+.tw-body .cashtag{color:var(--amber);font-weight:600;}
+.tw-body .kw-hit{background:var(--amber-dim);color:var(--amber);padding:0 3px;border-radius:2px;}
+.tw-footer{display:flex;align-items:center;gap:14px;margin-top:10px;}
+.tw-metric{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text3);}
+.alert-flag{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--amber);letter-spacing:1px;margin-left:auto;display:flex;align-items:center;gap:4px;}
+
+/* AI TERMINAL */
+.terminal{background:var(--bg2);border:1px solid var(--cyan-border);border-radius:4px;overflow:hidden;}
+.term-bar{background:var(--bg4);padding:10px 14px;display:flex;align-items:center;gap:8px;border-bottom:1px solid var(--cyan-border);}
+.term-dot{width:8px;height:8px;border-radius:50%;}
+.term-title{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;margin-left:4px;}
+.term-body{padding:20px;}
+.term-input-row{display:flex;gap:10px;margin-bottom:16px;}
+.term-input{background:var(--bg4);border:1px solid var(--bg5);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:12px;padding:10px 14px;border-radius:3px;flex:1;outline:none;transition:border 0.2s;}
+.term-input:focus{border-color:var(--cyan-border);}
+.term-input::placeholder{color:var(--text3);}
+.run-btn{background:var(--cyan);color:var(--bg);font-family:'Rajdhani',sans-serif;font-size:14px;font-weight:700;letter-spacing:2px;border:none;padding:10px 20px;border-radius:3px;cursor:pointer;transition:all 0.2s;white-space:nowrap;}
+.run-btn:hover{background:#00f5ff;}
+.term-output{background:var(--bg);border:1px solid var(--bg5);border-radius:3px;padding:16px;min-height:200px;font-size:13px;line-height:1.8;}
+.term-prompt{color:var(--cyan);font-family:'Share Tech Mono',monospace;font-size:11px;margin-bottom:10px;}
+.think-row{display:none;align-items:center;gap:8px;margin-bottom:12px;}
+.think-row.show{display:flex;}
+.think-dots span{display:inline-block;width:5px;height:5px;border-radius:50%;background:var(--cyan);animation:td 1.2s infinite;margin-right:3px;}
+.think-dots span:nth-child(2){animation-delay:.2s}.think-dots span:nth-child(3){animation-delay:.4s}
+@keyframes td{0%,80%,100%{transform:scale(0.5);opacity:0.3}40%{transform:scale(1);opacity:1}}
+.think-txt{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--cyan);letter-spacing:1px;}
+.quick-cmds{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;}
+.qcmd{background:var(--bg4);border:1px solid var(--bg5);color:var(--text2);font-family:'Share Tech Mono',monospace;font-size:10px;padding:5px 10px;border-radius:2px;cursor:pointer;transition:all 0.2s;letter-spacing:0.5px;}
+.qcmd:hover{border-color:var(--cyan-border);color:var(--cyan);}
+
+/* OPPORTUNITY CARDS */
+.opp-card{background:var(--bg3);border:1px solid var(--bg5);border-radius:4px;padding:18px;position:relative;overflow:hidden;}
+.opp-card::after{content:'';position:absolute;top:0;right:0;width:60px;height:60px;background:radial-gradient(circle,var(--cyan-dim),transparent);pointer-events:none;}
+.opp-header{display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px;}
+.opp-name{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--text);}
+.opp-sector{font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);margin-top:2px;}
+.conviction{font-family:'Rajdhani',sans-serif;font-size:28px;font-weight:700;color:var(--cyan);}
+.conviction-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text3);letter-spacing:1px;text-align:right;}
+.opp-body{font-size:12px;line-height:1.7;color:var(--text2);margin-bottom:12px;}
+.catalyst-list{display:flex;flex-direction:column;gap:4px;}
+.catalyst{display:flex;align-items:flex-start;gap:6px;font-size:12px;color:var(--text2);}
+.catalyst::before{content:'›';color:var(--cyan);flex-shrink:0;}
+
+/* ECOSYSTEM RANK */
+.eco-row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--bg5);}
+.eco-row:last-child{border-bottom:none;}
+.eco-rank{font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text3);width:20px;}
+.eco-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0;}
+.eco-name{font-family:'Rajdhani',sans-serif;font-size:16px;font-weight:600;color:var(--text);width:120px;}
+.eco-bars{flex:1;display:flex;flex-direction:column;gap:4px;}
+.eco-bar-row{display:flex;align-items:center;gap:6px;}
+.eco-bar-lbl{font-family:'Share Tech Mono',monospace;font-size:8px;color:var(--text3);width:60px;}
+.eco-bar-track{flex:1;height:3px;background:var(--bg5);border-radius:2px;}
+.eco-bar-fill{height:100%;border-radius:2px;}
+.eco-score{font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--cyan);width:40px;text-align:right;}
+
+/* FORMS */
+.input-group{margin-bottom:14px;}
+.input-lbl{font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text2);letter-spacing:2px;margin-bottom:6px;display:block;}
+.af-input{background:var(--bg4);border:1px solid var(--bg5);color:var(--text);font-family:'Share Tech Mono',monospace;font-size:12px;padding:9px 12px;border-radius:3px;width:100%;outline:none;transition:border 0.2s;}
+.af-input:focus{border-color:var(--cyan-border);}
+.af-btn{background:transparent;border:1px solid var(--cyan-border);color:var(--cyan);font-family:'Rajdhani',sans-serif;font-size:13px;font-weight:600;letter-spacing:2px;padding:9px 18px;border-radius:3px;cursor:pointer;transition:all 0.2s;}
+.af-btn:hover{background:var(--cyan-dim);}
+.af-btn.solid{background:var(--cyan);color:var(--bg);border-color:var(--cyan);}
+.af-btn.solid:hover{background:#00f5ff;}
+
+/* SCROLLBAR */
+::-webkit-scrollbar{width:4px;height:4px;}
+::-webkit-scrollbar-track{background:var(--bg2);}
+::-webkit-scrollbar-thumb{background:var(--bg5);border-radius:2px;}
+::-webkit-scrollbar-thumb:hover{background:var(--cyan-border);}
+
+/* RESPONSIVE */
+@media(max-width:1100px){.grid-4{grid-template-columns:repeat(2,1fr)}.grid-3{grid-template-columns:1fr 1fr}}
+@media(max-width:800px){.sidebar{width:180px}.main{margin-left:180px}.grid-4,.grid-3,.grid-2{grid-template-columns:1fr}}
+@media(max-width:600px){.sidebar{display:none}.main{margin-left:0}}
+</style>
+</head>
+<body>
+
+<!-- TICKER -->
+<div class="ticker-bar">
+  <div class="ticker-id">ALPHAFLOW</div>
+  <div style="overflow:hidden;flex:1;">
+    <div class="ticker-scroll" id="tickerScroll"></div>
+  </div>
+  <div id="priceStatus" style="font-family:'Share Tech Mono',monospace;font-size:9px;padding:0 12px;white-space:nowrap;flex-shrink:0;color:var(--amber);">◉ CONNECTING...</div>
+</div>
+
+<!-- LAYOUT -->
+<div class="layout">
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="brand">
+      <div class="brand-name">ALPHA<br>FLOW</div>
+      <div class="brand-sub">INTELLIGENCE SYSTEM</div>
+      <div class="signal-row"><div class="pulse"></div><div class="signal-txt">SIGNAL ACTIVE</div></div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">INTELLIGENCE</div>
+      <div class="nav-item active" onclick="nav('dashboard',this)"><span class="nav-icon">◈</span>Dashboard</div>
+      <div class="nav-item" onclick="nav('smartmoney',this)"><span class="nav-icon">◎</span>Smart Money<span class="nav-badge" id="smBadge">3</span></div>
+      <div class="nav-item" onclick="nav('wallets',this)"><span class="nav-icon">◇</span>Wallet Tracker</div>
+      <div class="nav-item" onclick="nav('feed',this)"><span class="nav-icon">◉</span>Signal Feed<span class="nav-badge" id="feedBadge">5</span></div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">ANALYSIS</div>
+      <div class="nav-item" onclick="nav('ecosystems',this)"><span class="nav-icon">▣</span>Ecosystems</div>
+      <div class="nav-item" onclick="nav('narratives',this)"><span class="nav-icon">▤</span>Narratives</div>
+      <div class="nav-item" onclick="nav('opportunities',this)"><span class="nav-icon">◆</span>Opportunities</div>
+      <div class="nav-item" onclick="nav('terminal',this)"><span class="nav-icon">▶</span>AI Terminal</div>
+    </div>
+
+    <div class="nav-section">
+      <div class="nav-label">CONFIGURATION</div>
+      <div class="nav-item" onclick="nav('settings',this)"><span class="nav-icon">◧</span>Settings</div>
+    </div>
+
+    <div class="sidebar-footer">
+      <div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3);letter-spacing:1px;margin-bottom:6px;">MARKET THREAT LEVEL</div>
+      <div class="threat-bar">
+        <div class="threat-label">MODERATE — 62/100</div>
+        <div class="threat-meter"><div class="threat-fill" style="width:62%"></div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+
+    <!-- DASHBOARD -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="sec-header">
+        <div class="sec-title">COMMAND CENTER</div>
+        <div class="sec-meta" id="dashTime">LOADING...</div>
+      </div>
+
+      <div class="grid-4">
+        <div class="stat-card green">
+          <div class="s-label">SMART MONEY FLOW</div>
+          <div class="s-val green">+$2.4B</div>
+          <div class="s-sub">7D NET INFLOW</div>
+        </div>
+        <div class="stat-card amber">
+          <div class="s-label">SIGNALS DETECTED</div>
+          <div class="s-val amber" id="sigCount">14</div>
+          <div class="s-sub">LAST 24H</div>
+        </div>
+        <div class="stat-card">
+          <div class="s-label">WALLETS TRACKED</div>
+          <div class="s-val cyan">4</div>
+          <div class="s-sub">ACROSS 6 CHAINS</div>
+        </div>
+        <div class="stat-card red">
+          <div class="s-label">THREAT ALERTS</div>
+          <div class="s-val red">3</div>
+          <div class="s-sub">ACTIVE RISKS</div>
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;margin-bottom:14px;">OPPORTUNITY SCORES — LIVE</div>
+          <div id="oppScores"></div>
+        </div>
+        <div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;margin-bottom:14px;">CAPITAL ROTATION MAP</div>
+          <div id="capitalMap"></div>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;margin-bottom:14px;">LATEST INTELLIGENCE SIGNALS</div>
+      <div id="latestSignals"></div>
+    </div>
+
+    <!-- SMART MONEY -->
+    <div class="panel" id="panel-smartmoney">
+      <div class="sec-header">
+        <div class="sec-title">SMART MONEY DASHBOARD</div>
+        <div class="sec-meta">INSTITUTIONAL POSITIONING INTELLIGENCE</div>
+      </div>
+      <div class="grid-3" id="smGrid"></div>
+      <div class="divider"></div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;margin-bottom:14px;">ACCUMULATION SIGNALS</div>
+      <div style="background:var(--bg3);border:1px solid var(--bg5);border-radius:4px;overflow:hidden;">
+        <table class="data-table" id="accumTable"></table>
+      </div>
+    </div>
+
+    <!-- WALLET TRACKER -->
+    <div class="panel" id="panel-wallets">
+      <div class="sec-header">
+        <div class="sec-title">WALLET INTELLIGENCE</div>
+        <div class="sec-meta">4 WALLETS · EVM + SOL + SUI + XLM</div>
+      </div>
+      <div id="walletCards"></div>
+      <div class="divider"></div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;margin-bottom:14px;">ADD WALLET</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:10px;">
+        <input class="af-input" id="newWallet" placeholder="0x... or Solana/Sui/XLM address" style="flex:1;min-width:260px;">
+        <select class="af-input" id="walletChain" style="width:140px;">
+          <option value="EVM">EVM (ETH/Base...)</option>
+          <option value="Solana">Solana</option>
+          <option value="Sui">Sui</option>
+          <option value="Stellar">Stellar / XLM</option>
+        </select>
+        <button class="af-btn solid" onclick="addWallet()">ADD</button>
+      </div>
+    </div>
+
+    <!-- SIGNAL FEED -->
+    <div class="panel" id="panel-feed">
+      <div class="sec-header">
+        <div class="sec-title">SIGNAL FEED</div>
+        <div class="sec-meta">13 ACCOUNTS MONITORED</div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="af-btn" onclick="filterFeed('all',this)" style="font-size:11px;padding:6px 12px;" id="ff-all">ALL</button>
+        <button class="af-btn" onclick="filterFeed('alert',this)" style="font-size:11px;padding:6px 12px;">ALERTS</button>
+        <button class="af-btn" onclick="filterFeed('alpha',this)" style="font-size:11px;padding:6px 12px;">ALPHA</button>
+        <button class="af-btn" onclick="filterFeed('btc',this)" style="font-size:11px;padding:6px 12px;">BTC</button>
+        <button class="af-btn" onclick="filterFeed('defi',this)" style="font-size:11px;padding:6px 12px;">DEFI</button>
+        <input class="af-input" id="kwInput" placeholder="Add alert keyword..." style="width:180px;" onkeydown="if(event.key==='Enter')addKw()">
+        <button class="af-btn" onclick="addKw()" style="font-size:11px;padding:6px 12px;">+ KW</button>
+      </div>
+      <div id="kwTags" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
+      <div id="feedCards"></div>
+    </div>
+
+    <!-- ECOSYSTEMS -->
+    <div class="panel" id="panel-ecosystems">
+      <div class="sec-header">
+        <div class="sec-title">ECOSYSTEM RANKINGS</div>
+        <div class="sec-meta">RANKED BY FUTURE POTENTIAL — NOT CURRENT PRICE</div>
+      </div>
+      <div style="font-size:12px;color:var(--text2);margin-bottom:20px;font-family:'Share Tech Mono',monospace;line-height:1.8;">Scoring: Capital (30%) + Developer Growth (25%) + Adoption (25%) + Infrastructure Maturity (20%)</div>
+      <div style="background:var(--bg3);border:1px solid var(--bg5);border-radius:4px;padding:20px;" id="ecoList"></div>
+    </div>
+
+    <!-- NARRATIVES -->
+    <div class="panel" id="panel-narratives">
+      <div class="sec-header">
+        <div class="sec-title">NARRATIVE INTELLIGENCE</div>
+        <div class="sec-meta">CAPITAL > BUILDERS > USERS > HYPE</div>
+      </div>
+      <div id="narrativeGrid"></div>
+    </div>
+
+    <!-- OPPORTUNITIES -->
+    <div class="panel" id="panel-opportunities">
+      <div class="sec-header">
+        <div class="sec-title">HIDDEN OPPORTUNITIES</div>
+        <div class="sec-meta">PRE-RETAIL SIGNAL DETECTION</div>
+      </div>
+      <div class="grid-3" id="oppCards"></div>
+      <div class="divider"></div>
+      <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;margin-bottom:14px;">THREAT ASSESSMENT</div>
+      <div id="threatCards"></div>
+    </div>
+
+    <!-- AI TERMINAL -->
+    <div class="panel" id="panel-terminal">
+      <div class="sec-header">
+        <div class="sec-title">ALPHAFLOW AI TERMINAL</div>
+        <div class="sec-meta">POWERED BY CLAUDE · INSTITUTIONAL ANALYSIS ENGINE</div>
+      </div>
+      <div class="terminal">
+        <div class="term-bar">
+          <div class="term-dot" style="background:#ff5f56"></div>
+          <div class="term-dot" style="background:#ffbd2e"></div>
+          <div class="term-dot" style="background:#27c93f"></div>
+          <div class="term-title">ALPHAFLOW INTELLIGENCE ENGINE v2.0</div>
+          <div style="margin-left:auto;font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--green);">● ONLINE</div>
+        </div>
+        <div class="term-body">
+          <div class="term-input-row">
+            <input class="term-input" id="termInput" placeholder="> Run intelligence query... (e.g. 'Where is smart money positioning in BTCFi?')" onkeydown="if(event.key==='Enter')runQuery()">
+            <button class="run-btn" onclick="runQuery()">▶ RUN</button>
+          </div>
+          <div class="quick-cmds">
+            <span class="qcmd" onclick="setQ('Where is smart money positioning in BTCFi right now?')">BTCFi Smart Money</span>
+            <span class="qcmd" onclick="setQ('Which Sui DeFi protocols are attracting capital before retail?')">Sui Pre-Retail Alpha</span>
+            <span class="qcmd" onclick="setQ('Analyze XRP and XRPL DeFi capital flows and upcoming catalysts')">XRPL Capital Flow</span>
+            <span class="qcmd" onclick="setQ('What is the highest conviction asymmetric opportunity in crypto right now?')">Top Asymmetric Play</span>
+            <span class="qcmd" onclick="setQ('Score the top 5 DeFi narratives by capital vs hype ratio')">Narrative Scoring</span>
+            <span class="qcmd" onclick="setQ('Where are whale wallets rotating capital between L1 ecosystems?')">Whale Rotation Intel</span>
+            <span class="qcmd" onclick="setQ('Bitcoin mortgage and collateralization thesis — where is institutional money moving?')">BTC Collateral Thesis</span>
+            <span class="qcmd" onclick="setQ('Generate full ALPHAFLOW intelligence report for today')">Full Report</span>
+          </div>
+          <div style="height:16px;"></div>
+          <div class="term-output" id="termOutput">
+            <div class="term-prompt">> ALPHAFLOW INTELLIGENCE ENGINE — READY</div>
+            <div style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text2);line-height:2;">
+              Select a quick command or enter a custom query.<br>
+              System is monitoring 13 Twitter accounts and 4 whale wallets.<br>
+              Analyzing: EVM · Solana · Sui · Stellar · Bitcoin L2s · XRPL
+            </div>
+          </div>
+          <div class="think-row" id="thinkRow">
+            <div class="think-dots"><span></span><span></span><span></span></div>
+            <div class="think-txt">ALPHAFLOW PROCESSING INTELLIGENCE QUERY...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SETTINGS -->
+    <div class="panel" id="panel-settings">
+      <div class="sec-header">
+        <div class="sec-title">CONFIGURATION</div>
+        <div class="sec-meta">INTELLIGENCE PARAMETERS</div>
+      </div>
+      <div class="grid-2">
+        <div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;margin-bottom:14px;">MONITORED ACCOUNTS (13)</div>
+          <div id="accountList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;max-height:360px;overflow-y:auto;"></div>
+          <div style="display:flex;gap:8px;">
+            <input class="af-input" id="newAcct" placeholder="@handle or twitter.com/..." style="flex:1;">
+            <button class="af-btn solid" onclick="addAccount()">ADD</button>
+          </div>
+        </div>
+        <div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;margin-bottom:14px;">ALERT KEYWORDS</div>
+          <div id="kwSettingList" style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px;"></div>
+          <div style="display:flex;gap:8px;">
+            <input class="af-input" id="newKwSetting" placeholder="e.g. whale move, smart money..." style="flex:1;">
+            <button class="af-btn solid" onclick="addKwSetting()">ADD</button>
+          </div>
+          <div class="divider"></div>
+          <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:var(--text2);letter-spacing:2px;margin-bottom:14px;">TRACKED CHAINS</div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;" id="chainToggles"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// DATA — CoinGecko IDs mapped to display symbols
+const COINS=[
+  {sym:'BTC',id:'bitcoin',px:0,chg:0,mcap:0},
+  {sym:'ETH',id:'ethereum',px:0,chg:0,mcap:0},
+  {sym:'XRP',id:'ripple',px:0,chg:0,mcap:0},
+  {sym:'SOL',id:'solana',px:0,chg:0,mcap:0},
+  {sym:'SUI',id:'sui',px:0,chg:0,mcap:0},
+  {sym:'BNB',id:'binancecoin',px:0,chg:0,mcap:0},
+  {sym:'LINK',id:'chainlink',px:0,chg:0,mcap:0},
+  {sym:'AAVE',id:'aave',px:0,chg:0,mcap:0},
+  {sym:'STX',id:'blockstack',px:0,chg:0,mcap:0},
+  {sym:'INJ',id:'injective-protocol',px:0,chg:0,mcap:0},
+  {sym:'JUP',id:'jupiter-exchange-solana',px:0,chg:0,mcap:0},
+  {sym:'AVAX',id:'avalanche-2',px:0,chg:0,mcap:0},
+  {sym:'XLM',id:'stellar',px:0,chg:0,mcap:0},
+  {sym:'UNI',id:'uniswap',px:0,chg:0,mcap:0},
+];
+
+let liveData={};
+COINS.forEach(c=>{liveData[c.sym]={px:0,chg:0,mcap:0};});
+
+let pricesFetched=false;
+let lastFetchTime=null;
+
+// COINGECKO FREE API VIA CORS PROXY
+async function fetchLivePrices(){
+  const ids=COINS.map(c=>c.id).join(',');
+  const url=`https://api.coingecko.com/api/v3/simple/price?ids=${ids}&vs_currencies=usd&include_24hr_change=true&include_market_cap=true`;
+  const proxies=[
+    `https://corsproxy.io/?${encodeURIComponent(url)}`,
+    `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`,
+  ];
+  for(const proxy of proxies){
+    try{
+      const res=await fetch(proxy,{signal:AbortSignal.timeout(8000)});
+      if(!res.ok) continue;
+      const data=await res.json();
+      let updated=0;
+      COINS.forEach(c=>{
+        const d=data[c.id];
+        if(d){
+          liveData[c.sym]={
+            px:d.usd||0,
+            chg:d.usd_24h_change?Math.round(d.usd_24h_change*100)/100:0,
+            mcap:d.usd_market_cap||0
+          };
+          updated++;
+        }
+      });
+      if(updated>0){
+        pricesFetched=true;
+        lastFetchTime=new Date();
+        updatePriceStatusIndicator(true);
+        buildTicker();
+        if(document.getElementById('panel-dashboard').classList.contains('active')) buildDashboard();
+        return;
+      }
+    }catch(e){ continue; }
+  }
+  updatePriceStatusIndicator(false);
+}
+
+function updatePriceStatusIndicator(ok){
+  const el=document.getElementById('priceStatus');
+  if(!el) return;
+  if(ok){
+    const t=lastFetchTime?lastFetchTime.toLocaleTimeString():'now';
+    el.innerHTML=`<span style="color:var(--green);">● LIVE</span> <span style="font-size:9px;color:var(--text3);">CoinGecko · Updated ${t}</span>`;
+  } else {
+    el.innerHTML=`<span style="color:var(--amber);">◉ PROXY ERROR</span> <span style="font-size:9px;color:var(--text3);">Retrying in 60s — using last known prices</span>`;
+  }
+}
+
+function fmtMcap(n){if(!n||n===0)return'—';if(n>=1e12)return'$'+(n/1e12).toFixed(2)+'T';if(n>=1e9)return'$'+(n/1e9).toFixed(1)+'B';if(n>=1e6)return'$'+(n/1e6).toFixed(0)+'M';return'$'+n.toLocaleString();}
+
+let accounts=[
+  {handle:'@StaniKulechov',name:'Stani Kulechov',type:'founder'},
+  {handle:'@dcfgod',name:'DCF GOD',type:'analyst'},
+  {handle:'@lex_node',name:'lex_node',type:'legal'},
+  {handle:'@AltCryptoGems',name:'AltCryptoGems',type:'alpha'},
+  {handle:'@asedd72',name:'asedd72',type:'alpha'},
+  {handle:'@100xAltcoinGems',name:'100xAltcoinGems',type:'alpha'},
+  {handle:'@cryptorover',name:'Crypto Rover',type:'analyst'},
+  {handle:'@AlphaCartell',name:'Alpha Cartell',type:'alpha'},
+  {handle:'@CryptoEmdarks',name:'CryptoEmdarks',type:'alpha'},
+  {handle:'@WatcherGuru',name:'Watcher Guru',type:'news'},
+  {handle:'@altcryptocom',name:'AltCrypto',type:'alpha'},
+  {handle:'@phtevenstrong',name:'phtevenstrong',type:'alpha'},
+  {handle:'@WhaleFactor',name:'Whale Factor',type:'whale'},
+];
+
+let wallets=[
+  {addr:'0x3e8734ec146c981e3ed1f6b582d447dde701d90c',chain:'EVM',value:'$4.2M',txns:847,last:'14m ago'},
+  {addr:'0x192820ce84fa9eb457fb228c386fe0ed22f7e33c',chain:'EVM',value:'$1.8M',txns:312,last:'2h ago'},
+  {addr:'0xb554b9856dfdbf52b98e0e4d2b981c34e20e1dab',chain:'EVM',value:'$890K',txns:156,last:'6h ago'},
+  {addr:'0x534A0076fb7c2b1f83FA21497429AD7ad3bD7587',chain:'EVM',value:'$3.1M',txns:524,last:'31m ago'},
+];
+
+let keywords=['whale accumulation','smart money','100x','BTCFi','institutional'];
+let activeFilter='all';
+
+const FEED_DATA=[
+  {handle:'@StaniKulechov',body:'AAVE V4 architecture will unlock a new primitive for cross-chain $BTC lending. The collateral layer is changing. This is not incremental.',time:'8m',likes:'3.2K',rts:'1.1K',tags:['defi','btc'],isAlert:true},
+  {handle:'@dcfgod',body:'The $STX chart is one of the cleanest accumulation structures I have seen in altcoin history. sBTC goes live → supply shock incoming.',time:'22m',likes:'5.7K',rts:'2.3K',tags:['btc','alpha'],isAlert:true},
+  {handle:'@WhaleFactor',body:'Whale Alert: 48,000 $ETH ($183M) moved from unknown wallet to Coinbase cold storage. Smart money accumulation or exchange preparation? Watching closely.',time:'35m',likes:'8.1K',rts:'4.2K',tags:['alert'],isAlert:true},
+  {handle:'@AltCryptoGems',body:'$SUI ecosystem is silently building the most dangerous DeFi stack in crypto. NAVI, Bluefin, Cetus — TVL up 340% in 60 days. Nobody is talking about this.',time:'1h',likes:'2.9K',rts:'987',tags:['alpha','defi'],isAlert:false},
+  {handle:'@cryptorover',body:'$XRP breaking out of a 7-year consolidation pattern. If this holds weekly close, the next major resistance is $8.40. On-chain volume confirms.',time:'1h',likes:'11.4K',rts:'4.8K',tags:['alpha'],isAlert:false},
+  {handle:'@AlphaCartell',body:'Three ecosystems we are watching for Q3 capital rotation: Sui, XRPL DeFi, and Bitcoin L2s. All have institutional interest before retail discovery.',time:'2h',likes:'4.1K',rts:'1.6K',tags:['alpha','defi'],isAlert:true},
+  {handle:'@WatcherGuru',body:'BREAKING: BlackRock files for tokenized Bitcoin collateral fund with SEC. This is the infrastructure move that changes BTC from asset to financial primitive.',time:'2h',likes:'22K',rts:'9.1K',tags:['btc','alert'],isAlert:true},
+  {handle:'@phtevenstrong',body:'The $JUP aggregator is routing more volume than most standalone DEXes. Jupiter is quietly becoming the liquidity backbone of Solana. Builders understand this.',time:'3h',likes:'1.8K',rts:'612',tags:['defi','alpha'],isAlert:false},
+  {handle:'@100xAltcoinGems',body:'$INJ at this level is a gift. Injective TVL just crossed $2B. Institutional traders are using it for perps. Retail has no idea.',time:'3h',likes:'3.4K',rts:'1.2K',tags:['alpha'],isAlert:false},
+  {handle:'@asedd72',body:'Solana stablecoin volume just hit an all-time high. This is what real adoption looks like — not price, not NFTs. Follow the stable flows.',time:'4h',likes:'2.1K',rts:'744',tags:['defi'],isAlert:false},
+  {handle:'@lex_node',body:'The legal infrastructure for tokenized RWAs is moving faster than the market understands. Three major frameworks passed quietly last quarter.',time:'5h',likes:'4.7K',rts:'1.9K',tags:['alpha'],isAlert:false},
+  {handle:'@altcryptocom',body:'$XLM and Stellar are the dark horse play for 2025. DTCC partnership, institutional settlement rails, and a stablecoin explosion coming. Watch.',time:'6h',likes:'1.6K',rts:'534',tags:['alpha'],isAlert:false},
+  {handle:'@CryptoEmdarks',body:'Quiet accumulation on $LINK observed across 12 smart money wallets over 30 days. Average entry price: $14.20. Current: $19.80. They loaded before the oracle narrative.',time:'7h',likes:'2.8K',rts:'934',tags:['alpha','alert'],isAlert:true},
+];
+
+const ECOSYSTEMS=[
+  {name:'Bitcoin L2s',color:'#f7931a',scores:{capital:92,dev:78,adoption:71,infra:88},total:83},
+  {name:'Solana',color:'#9945ff',scores:{capital:88,dev:91,adoption:86,infra:84},total:87},
+  {name:'Sui',color:'#4da2ff',scores:{capital:79,dev:88,adoption:74,infra:77},total:80},
+  {name:'Ethereum',color:'#627eea',scores:{capital:95,dev:94,adoption:92,infra:97},total:95},
+  {name:'XRPL',color:'#00aae4',scores:{capital:74,dev:68,adoption:72,infra:76},total:73},
+  {name:'Base',color:'#0052ff',scores:{capital:82,dev:85,adoption:80,infra:81},total:82},
+  {name:'Stellar',color:'#14b6e7',scores:{capital:58,dev:55,adoption:64,infra:70},total:62},
+  {name:'Stacks',color:'#5546ff',scores:{capital:71,dev:74,adoption:61,infra:68},total:69},
+];
+
+const NARRATIVES=[
+  {name:'BTCFi',strength:'STRONGEST',cap:92,builders:88,users:71,hype:45,verdict:'Capital and builders far ahead of retail awareness. Prime window.'},
+  {name:'Tokenized RWAs',strength:'STRONGEST',cap:89,builders:82,users:64,hype:52,verdict:'Institutional infrastructure being laid now. Retail 12-18 months behind.'},
+  {name:'AI Agents',strength:'ACCELERATING',cap:78,builders:91,users:58,hype:74,verdict:'Builder activity exceptional. Watch for capital to follow narrative maturation.'},
+  {name:'DePIN',strength:'ACCELERATING',cap:72,builders:84,users:61,hype:48,verdict:'Real hardware deployment. Render, Helium, RNDR show genuine usage metrics.'},
+  {name:'Stablecoins',strength:'STRONGEST',cap:94,builders:77,users:95,hype:40,verdict:'Quiet adoption at scale. Most underreported narrative in the space.'},
+  {name:'Decentralized Compute',strength:'EARLY STAGE',cap:61,builders:78,users:42,hype:38,verdict:'Infrastructure phase. Patient capital accumulating before product-market fit.'},
+  {name:'Agentic Commerce',strength:'EARLY STAGE',cap:54,builders:82,users:31,hype:44,verdict:'Too early for capital but builder activity is outsized signal for 2026.'},
+  {name:'Memecoins',strength:'OVERCROWDED',cap:44,builders:12,users:78,hype:98,verdict:'Pure speculation. No infrastructure. Retail trap. Exit, do not enter.'},
+];
+
+const OPPORTUNITIES=[
+  {name:'sBTC / Stacks',sector:'Bitcoin L2 — BTCFi',why:'sBTC launch creates first native Bitcoin DeFi primitive. Institutional capital needs on-chain BTC yield. Only credible solution on L2.',retail:'Almost no retail coverage. Narrative 12+ months ahead of mass awareness.',catalysts:['sBTC mainnet launch','Nakamoto upgrade completion','BTC mortgage market growth','Institutional BTC lending demand'],risk:'Execution risk on sBTC peg maintenance. Competing L2s.',conviction:9},
+  {name:'NAVI Protocol',sector:'Sui — Lending',why:'Leading lending protocol on fastest-growing L1 ecosystem. TVL growing 30% MoM. Smart money entered sub-$50M TVL.',retail:'Sui ecosystem largely undiscovered by retail. Most alpha hunters focused on Solana.',catalysts:['Sui ecosystem expansion','Institutional Sui adoption','NAVI governance upgrade','Cross-chain BTC collateral integration'],risk:'Smart contract risk. Sui ecosystem dependency.',conviction:8},
+  {name:'Jupiter (JUP)',sector:'Solana — DEX Aggregator',why:'Routing 70%+ of Solana DEX volume. Infrastructure position in the largest growing L1. Not priced for its actual market dominance.',retail:'Overshadowed by SOL price action. Most retail focused on memes.',catalysts:['Solana institutional flows','JUP staking yield rollout','Perpetuals expansion','Volume milestone unlock'],risk:'Solana network dependency. DEX competition.',conviction:8},
+  {name:'Chainlink (LINK)',sector:'Oracle Infrastructure',why:'Every RWA tokenization project requires reliable oracle infrastructure. LINK is the default. Smart wallets been loading quietly.',retail:'Boring infrastructure narrative. Retail prefers speculative assets.',catalysts:['RWA narrative acceleration','CCIP cross-chain expansion','DeFi TVL growth','Enterprise oracle contracts'],risk:'Competition from Pyth, Redstone. Pricing pressure.',conviction:7},
+  {name:'XLM / Stellar',sector:'Institutional Settlement',why:'DTCC partnership for settlement rails. Stablecoin issuance growth. Institutional adoption in FX corridors invisible to retail.',retail:'Seen as dead project. Most retail exited years ago creating silent accumulation window.',catalysts:['DTCC integration go-live','Stablecoin expansion','Emerging market FX adoption','Soroban DeFi ecosystem'],risk:'Slow development pace. Market narrative attention deficit.',conviction:7},
+  {name:'Injective (INJ)',sector:'DeFi — Perps/Derivatives',why:'$2B+ TVL, institutional perp trading rails, undervalued vs comparable derivatives protocols. On-chain options market growing.',retail:'Unknown to most retail. No major influencer coverage yet.',catalysts:['Institutional derivatives onboarding','INJ burn mechanism','Cross-chain perp expansion','RWA derivatives launch'],risk:'Derivatives market competition. Regulatory exposure.',conviction:8},
+];
+
+const THREATS=[
+  {name:'Overleveraged Altcoin Positions',level:'HIGH',desc:'Funding rates across top 20 alts at 6-month highs. Cascading liquidation risk on any 15%+ BTC correction.'},
+  {name:'Memecoin Liquidity Trap',level:'HIGH',desc:'$4.2B locked in sub-$10M mcap memecoins. Exit liquidity nonexistent. Retail holding bags institutional dumped.'},
+  {name:'Unsustainable DeFi Yields',level:'MODERATE',desc:'Several Solana protocols offering 200%+ APY on new pools. Ponzi dynamics. Avoid until emissions schedule reviewed.'},
+];
+
+// HELPERS
+function fmt(n){if(n>=1e12)return'$'+(n/1e12).toFixed(2)+'T';if(n>=1e9)return'$'+(n/1e9).toFixed(2)+'B';if(n>=1e6)return'$'+(n/1e6).toFixed(2)+'M';return'$'+n.toLocaleString('en-US',{maximumFractionDigits:2});}
+function fmtPx(p){if(!p||p===0)return'—';return p>=1000?'$'+p.toLocaleString('en-US',{maximumFractionDigits:0}):p>=1?'$'+p.toFixed(2):p>=0.01?'$'+p.toFixed(4):'$'+p.toFixed(6);}
+function accentColor(h){return{'founder':'#00e5ff','analyst':'#b388ff','legal':'#ffab00','alpha':'#00e676','news':'#ff7043','whale':'#ff3d57'}[h]||'#7a8ba0';}
+
+// TICKER
+function buildTicker(){
+  const el=document.getElementById('tickerScroll');
+  if(!pricesFetched){
+    const loading='<div class="t-item"><span style="color:var(--amber);">◉ FETCHING LIVE PRICES FROM COINGECKO...</span></div>';
+    el.innerHTML=loading+loading;
+    return;
+  }
+  const html=COINS.map(c=>{
+    const d=liveData[c.sym];
+    if(!d||!d.px) return '';
+    const up=d.chg>=0;
+    return`<div class="t-item"><span class="t-sym">${c.sym}</span><span class="t-px">${fmtPx(d.px)}</span><span class="${up?'t-up':'t-dn'}">${up?'+':''}${d.chg.toFixed(2)}%</span></div>`;
+  }).join('');
+  el.innerHTML=html+html;
+}
+
+// NAV
+function nav(id,el){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.getElementById('panel-'+id).classList.add('active');
+  el.classList.add('active');
+}
+
+// DASHBOARD
+function buildDashboard(){
+  document.getElementById('dashTime').textContent=new Date().toUTCString().replace('GMT','UTC');
+  const opp=document.getElementById('oppScores');
+  const items=[
+    {lbl:'CAPITAL FLOW SCORE',v:84,col:'#00e5ff'},
+    {lbl:'SMART MONEY SCORE',v:91,col:'#00e676'},
+    {lbl:'DEVELOPER ACTIVITY',v:78,col:'#b388ff'},
+    {lbl:'NARRATIVE STRENGTH',v:86,col:'#ffab00'},
+    {lbl:'ADOPTION RATE',v:72,col:'#00e5ff'},
+    {lbl:'RETAIL AWARENESS',v:31,col:'#ff3d57'},
+  ];
+  opp.innerHTML=items.map(i=>`<div class="score-row"><div class="score-lbl">${i.lbl}</div><div class="score-track"><div class="score-fill" style="width:${i.v}%;background:${i.col}"></div></div><div class="score-num">${i.v}</div></div>`).join('');
+
+  const cap=document.getElementById('capitalMap');
+  const flows=[
+    {from:'ETH',to:'Base',size:'+$840M',col:'#00e676'},
+    {from:'Altcoins',to:'BTC L2s',size:'+$520M',col:'#00e676'},
+    {from:'Retail',to:'Stables',size:'+$1.2B',col:'#ffab00'},
+    {from:'CEX',to:'DeFi',size:'+$380M',col:'#00e676'},
+    {from:'Memes',to:'Blue Chips',size:'+$290M',col:'#00e676'},
+    {from:'SOL Memes',to:'SOL DeFi',size:'+$210M',col:'#00e676'},
+  ];
+  cap.innerHTML=flows.map(f=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 0;border-bottom:1px solid var(--bg5);font-size:12px;"><span style="color:var(--text2);font-family:'Share Tech Mono',monospace;font-size:10px;">${f.from} → ${f.to}</span><span style="color:${f.col};font-family:'Share Tech Mono',monospace;font-size:11px;">${f.size}</span></div>`).join('');
+
+  const sig=document.getElementById('latestSignals');
+  const signals=[
+    {type:'ACCUMULATION',asset:'STX/sBTC',detail:'3 smart money wallets accumulated $2.1M in STX over 72h. sBTC launch imminent.',urgent:true},
+    {type:'ROTATION',asset:'ETH → Base',detail:'$840M moved from Ethereum mainnet to Base in past 7 days. Coinbase institutional flow.',urgent:false},
+    {type:'WHALE MOVE',asset:'BTC',detail:'12,400 BTC withdrawn from exchanges in 48h. Lowest exchange balance since 2018.',urgent:true},
+    {type:'BUILDER SIGNAL',asset:'Sui Ecosystem',detail:'GitHub commits on NAVI, Bluefin, Cetus up 180% MoM. Developer momentum accelerating.',urgent:false},
+  ];
+  sig.innerHTML=signals.map(s=>`<div style="background:var(--bg3);border:1px solid ${s.urgent?'var(--amber-border)':'var(--bg5)'};border-radius:4px;padding:14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:14px;">
+    <span class="tag ${s.urgent?'tag-amber':'tag-cyan'}" style="margin-top:2px;">${s.type}</span>
+    <div><div style="font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;">${s.asset}</div><div style="font-size:12px;color:var(--text2);line-height:1.6;">${s.detail}</div></div>
+  </div>`).join('');
+}
+
+// SMART MONEY
+function buildSmartMoney(){
+  const grid=document.getElementById('smGrid');
+  const cards=[
+    {name:'Silent Accumulation',icon:'◈',count:7,detail:'Assets with large wallet buys and zero social coverage.',col:'#00e676'},
+    {name:'Strategic Positioning',icon:'◉',count:4,detail:'Wallets entering ahead of known upcoming catalysts.',col:'#00e5ff'},
+    {name:'Capital Rotation',icon:'◇',count:3,detail:'Funds moving between sectors. BTC L2s primary destination.',col:'#ffab00'},
+  ];
+  grid.innerHTML=cards.map(c=>`<div class="stat-card" style="border-top-color:${c.col}"><div style="font-size:24px;margin-bottom:8px;">${c.icon}</div><div style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;color:${c.col};margin-bottom:6px;">${c.name}</div><div style="font-family:'Rajdhani',sans-serif;font-size:36px;font-weight:700;color:var(--text);">${c.count} <span style="font-size:14px;color:var(--text2);">signals</span></div><div style="font-size:12px;color:var(--text2);margin-top:8px;line-height:1.6;">${c.detail}</div></div>`).join('');
+
+  const tbl=document.getElementById('accumTable');
+  const rows=[
+    {asset:'STX',type:'Silent Accum.',wallets:3,vol:'$2.1M',days:3,conf:9},
+    {asset:'LINK',type:'Whale Loading',wallets:12,vol:'$8.4M',days:30,conf:8},
+    {asset:'INJ',type:'Strategic Entry',wallets:5,vol:'$3.2M',days:14,conf:8},
+    {asset:'XLM',type:'Silent Accum.',wallets:7,vol:'$1.8M',days:21,conf:7},
+    {asset:'JUP',type:'DeFi Rotation',wallets:4,vol:'$1.1M',days:7,conf:7},
+    {asset:'SUI',type:'Ecosystem Bet',wallets:9,vol:'$4.7M',days:45,conf:8},
+  ];
+  tbl.innerHTML=`<thead><tr><th>ASSET</th><th>TYPE</th><th>SMART WALLETS</th><th>VOLUME</th><th>DAYS ACTIVE</th><th>CONVICTION</th></tr></thead><tbody>`+rows.map(r=>`<tr><td><span style="font-family:'Share Tech Mono',monospace;color:var(--cyan);">$${r.asset}</span></td><td><span class="tag tag-amber">${r.type}</span></td><td class="mono neut">${r.wallets}</td><td class="mono up">${r.vol}</td><td class="mono neut">${r.days}d</td><td><span style="font-family:'Rajdhani',sans-serif;font-size:18px;font-weight:700;color:var(--cyan);">${r.conf}<span style="font-size:12px;color:var(--text3)">/10</span></span></td></tr>`).join('')+'</tbody>';
+}
+
+// WALLETS
+function buildWallets(){
+  const el=document.getElementById('walletCards');
+  el.innerHTML=wallets.map((w,i)=>{
+    const cols=['#00e5ff','#00e676','#ffab00','#b388ff'];
+    return`<div class="wallet-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+        <span class="tag tag-cyan">${w.chain}</span>
+        <span style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--text3);">LAST ACTIVE: ${w.last}</span>
+      </div>
+      <div class="wallet-addr">${w.addr}</div>
+      <div class="wallet-chain-row">
+        ${w.chain==='EVM'?['ETH','Base','Arbitrum','Optimism','Polygon'].map(c=>`<span class="tag tag-cyan" style="font-size:8px;">${c}</span>`).join(''):''}
+        ${w.chain==='Solana'?`<span class="tag tag-purple" style="font-size:8px;">SOL</span>`:''}
+        ${w.chain==='Sui'?`<span class="tag tag-cyan" style="font-size:8px;">SUI</span>`:''}
+        ${w.chain==='Stellar'?`<span class="tag tag-green" style="font-size:8px;">XLM</span>`:''}
+      </div>
+      <div class="wallet-stats">
+        <div class="w-stat"><div class="w-stat-lbl">EST VALUE</div><div class="w-stat-val" style="color:${cols[i]}">${w.value}</div></div>
+        <div class="w-stat"><div class="w-stat-lbl">TX COUNT</div><div class="w-stat-val">${w.txns}</div></div>
+        <div class="w-stat"><div class="w-stat-lbl">STATUS</div><div class="w-stat-val" style="color:var(--green);font-size:11px;">ACTIVE</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function addWallet(){
+  const addr=document.getElementById('newWallet').value.trim();
+  const chain=document.getElementById('walletChain').value;
+  if(!addr)return;
+  wallets.push({addr,chain,value:'Scanning...',txns:0,last:'just now'});
+  document.getElementById('newWallet').value='';
+  buildWallets();
+}
+
+// FEED
+function buildFeed(filter='all'){
+  const kws=keywords;
+  let data=FEED_DATA;
+  if(filter==='alert') data=data.filter(t=>t.isAlert);
+  else if(filter==='alpha') data=data.filter(t=>t.tags.includes('alpha'));
+  else if(filter==='btc') data=data.filter(t=>t.tags.includes('btc'));
+  else if(filter==='defi') data=data.filter(t=>t.tags.includes('defi'));
+
+  const colors={'#00e5ff':'◈','#b388ff':'◉','#ffab00':'◇','#00e676':'◆','#ff7043':'●','#ff3d57':'▲'};
+  const accs=['#00e5ff','#b388ff','#ffab00','#00e676','#ff7043','#ff3d57','#00e5ff','#b388ff','#ffab00','#00e676','#ff7043','#ff3d57','#00e5ff'];
+
+  const el=document.getElementById('feedCards');
+  el.innerHTML=data.map((t,i)=>{
+    const idx=accounts.findIndex(a=>a.handle.toLowerCase()===t.handle.toLowerCase());
+    const col=accs[idx>=0?idx:i%accs.length];
+    const initials=t.handle.replace('@','').slice(0,2).toUpperCase();
+    let body=t.body.replace(/\$[A-Z]{2,6}/g,m=>`<span class="cashtag">${m}</span>`);
+    kws.forEach(k=>{body=body.replace(new RegExp(k,'gi'),`<span class="kw-hit">${k}</span>`);});
+    const hasKwHit=kws.some(k=>t.body.toLowerCase().includes(k.toLowerCase()));
+    return`<div class="tweet-card ${(t.isAlert||hasKwHit)?'alert':''}">
+      ${(t.isAlert||hasKwHit)?`<div style="font-family:'Share Tech Mono',monospace;font-size:9px;color:var(--amber);letter-spacing:2px;margin-bottom:8px;">⚡ ALPHA SIGNAL DETECTED</div>`:''}
+      <div class="tw-header">
+        <div class="tw-av" style="background:${col}22;color:${col}">${initials}</div>
+        <div><div class="tw-handle">${t.handle}</div><div class="tw-name">${accounts[idx]?.name||t.handle}</div></div>
+        <div class="tw-time">${t.time} ago</div>
+      </div>
+      <div class="tw-body">${body}</div>
+      <div class="tw-footer">
+        <span class="tw-metric">♥ ${t.likes}</span>
+        <span class="tw-metric">↻ ${t.rts}</span>
+        ${t.tags.map(tag=>`<span class="tag tag-cyan" style="font-size:8px;">${tag.toUpperCase()}</span>`).join('')}
+        <button style="margin-left:auto;background:none;border:1px solid var(--bg5);color:var(--text3);font-family:'Share Tech Mono',monospace;font-size:9px;padding:3px 8px;border-radius:2px;cursor:pointer;" onclick="setQ('Analyze this intelligence: ${t.handle} said: ${t.body.slice(0,80)}...')">→ ANALYZE</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('kwTags').innerHTML=keywords.map((k,i)=>`<span style="display:inline-flex;align-items:center;gap:4px;background:var(--amber-dim);border:1px solid var(--amber-border);color:var(--amber);font-family:'Share Tech Mono',monospace;font-size:9px;padding:3px 8px;border-radius:2px;">${k}<span onclick="removeKw(${i})" style="cursor:pointer;color:var(--text3);margin-left:2px;">×</span></span>`).join('');
+}
+
+function filterFeed(f,btn){
+  activeFilter=f;
+  document.querySelectorAll('#panel-feed .af-btn').forEach(b=>b.style.borderColor='var(--bg5)');
+  btn.style.borderColor='var(--cyan)';
+  buildFeed(f);
+}
+
+function addKw(){
+  const v=document.getElementById('kwInput').value.trim();
+  if(!v)return;
+  keywords.push(v);
+  document.getElementById('kwInput').value='';
+  buildFeed(activeFilter);
+  buildKwSettingList();
+}
+
+function removeKw(i){keywords.splice(i,1);buildFeed(activeFilter);buildKwSettingList();}
+
+// ECOSYSTEMS
+function buildEcosystems(){
+  const sorted=[...ECOSYSTEMS].sort((a,b)=>b.total-a.total);
+  document.getElementById('ecoList').innerHTML=sorted.map((e,i)=>{
+    const bars=[{lbl:'CAPITAL',v:e.scores.capital,col:'#00e5ff'},{lbl:'DEVS',v:e.scores.dev,col:'#b388ff'},{lbl:'ADOPTION',v:e.scores.adoption,col:'#00e676'},{lbl:'INFRA',v:e.scores.infra,col:'#ffab00'}];
+    return`<div class="eco-row">
+      <div class="eco-rank">${String(i+1).padStart(2,'0')}</div>
+      <div class="eco-dot" style="background:${e.color}"></div>
+      <div class="eco-name">${e.name}</div>
+      <div class="eco-bars">${bars.map(b=>`<div class="eco-bar-row"><div class="eco-bar-lbl">${b.lbl}</div><div class="eco-bar-track"><div class="eco-bar-fill" style="width:${b.v}%;background:${b.col}"></div></div></div>`).join('')}</div>
+      <div class="eco-score">${e.total}</div>
+    </div>`;
+  }).join('');
+}
+
+// NARRATIVES
+function buildNarratives(){
+  const groups={STRONGEST:[],ACCELERATING:[],'EARLY STAGE':[],'OVERCROWDED':[]};
+  NARRATIVES.forEach(n=>groups[n.strength]?.push(n));
+  const labels={STRONGEST:'tag-green',ACCELERATING:'tag-cyan','EARLY STAGE':'tag-amber',OVERCROWDED:'tag-red'};
+  const el=document.getElementById('narrativeGrid');
+  el.innerHTML=Object.entries(groups).map(([label,items])=>`
+    <div style="margin-bottom:24px;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px;"><span class="tag ${labels[label]}">${label}</span><div style="flex:1;height:1px;background:var(--bg5)"></div></div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px;">
+        ${items.map(n=>`<div style="background:var(--bg3);border:1px solid var(--bg5);border-radius:4px;padding:14px;">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;"><span style="font-family:'Rajdhani',sans-serif;font-size:17px;font-weight:700;color:var(--text)">${n.name}</span></div>
+          <div style="display:flex;flex-direction:column;gap:5px;margin-bottom:10px;">
+            ${[['CAPITAL',n.cap,'#00e5ff'],['BUILDERS',n.builders,'#b388ff'],['USERS',n.users,'#00e676'],['HYPE',n.hype,'#ff3d57']].map(([l,v,c])=>`<div class="score-row"><div class="score-lbl" style="width:60px;">${l}</div><div class="score-track"><div class="score-fill" style="width:${v}%;background:${c}"></div></div><div class="score-num">${v}</div></div>`).join('')}
+          </div>
+          <div style="font-size:11px;color:var(--text2);line-height:1.6;font-family:'Share Tech Mono',monospace;">${n.verdict}</div>
+        </div>`).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+// OPPORTUNITIES
+function buildOpportunities(){
+  document.getElementById('oppCards').innerHTML=OPPORTUNITIES.map(o=>`<div class="opp-card">
+    <div class="opp-header">
+      <div><div class="opp-name">${o.name}</div><div class="opp-sector">${o.sector}</div></div>
+      <div style="text-align:right"><div class="conviction">${o.conviction}</div><div class="conviction-lbl">CONVICTION</div></div>
+    </div>
+    <div style="margin-bottom:10px;"><span class="tag tag-amber" style="margin-bottom:6px;display:inline-block;">WHY SMART MONEY</span><div class="opp-body" style="margin-top:6px;">${o.why}</div></div>
+    <div style="margin-bottom:10px;"><span class="tag tag-purple" style="margin-bottom:6px;display:inline-block;">RETAIL BLIND SPOT</span><div class="opp-body" style="margin-top:6px;">${o.retail}</div></div>
+    <div><span class="tag tag-cyan" style="margin-bottom:6px;display:inline-block;">KEY CATALYSTS</span><div class="catalyst-list" style="margin-top:6px;">${o.catalysts.map(c=>`<div class="catalyst">${c}</div>`).join('')}</div></div>
+    <div style="margin-top:12px;"><button style="background:none;border:1px solid var(--cyan-border);color:var(--cyan);font-family:'Share Tech Mono',monospace;font-size:9px;padding:5px 12px;border-radius:2px;cursor:pointer;letter-spacing:1px;" onclick="setQNav('Deep dive on ${o.name}: smart money positioning, catalysts, and risk assessment')">→ DEEP DIVE</button></div>
+  </div>`).join('');
+
+  document.getElementById('threatCards').innerHTML=THREATS.map(t=>`<div style="background:var(--bg3);border:1px solid ${t.level==='HIGH'?'rgba(255,61,87,0.3)':'var(--amber-border)'};border-radius:4px;padding:14px;margin-bottom:8px;display:flex;align-items:flex-start;gap:12px;">
+    <span class="tag ${t.level==='HIGH'?'tag-red':'tag-amber'}">${t.level}</span>
+    <div><div style="font-family:'Rajdhani',sans-serif;font-size:15px;font-weight:600;color:var(--text);margin-bottom:4px;">${t.name}</div><div style="font-size:12px;color:var(--text2);line-height:1.6;">${t.desc}</div></div>
+  </div>`).join('');
+}
+
+// SETTINGS
+function buildSettings(){
+  const el=document.getElementById('accountList');
+  el.innerHTML=accounts.map((a,i)=>`<div style="display:flex;align-items:center;gap:8px;background:var(--bg4);border-radius:3px;padding:8px 10px;">
+    <div style="width:6px;height:6px;border-radius:50%;background:${accentColor(a.type)};flex-shrink:0;"></div>
+    <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:${accentColor(a.type)};flex:1;">${a.handle}</span>
+    <span class="tag tag-cyan" style="font-size:8px;">${a.type.toUpperCase()}</span>
+    <button onclick="removeAccount(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 4px;transition:color 0.2s;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">×</button>
+  </div>`).join('');
+
+  buildKwSettingList();
+
+  document.getElementById('chainToggles').innerHTML=['EVM','Solana','Sui','Stellar','XRPL','Bitcoin L2'].map(c=>`<span class="tag tag-cyan" style="cursor:pointer;">${c}</span>`).join('');
+}
+
+function buildKwSettingList(){
+  document.getElementById('kwSettingList').innerHTML=keywords.map((k,i)=>`<div style="display:flex;align-items:center;gap:8px;background:var(--bg4);border-radius:3px;padding:8px 10px;">
+    <span style="color:var(--amber);font-size:12px;">⚡</span>
+    <span style="font-family:'Share Tech Mono',monospace;font-size:11px;color:var(--text2);flex:1;">${k}</span>
+    <button onclick="removeKwSetting(${i})" style="background:none;border:none;color:var(--text3);cursor:pointer;font-size:14px;padding:0 4px;" onmouseover="this.style.color='var(--red)'" onmouseout="this.style.color='var(--text3)'">×</button>
+  </div>`).join('');
+}
+
+function removeKwSetting(i){keywords.splice(i,1);buildKwSettingList();}
+function addKwSetting(){const v=document.getElementById('newKwSetting').value.trim();if(!v)return;keywords.push(v);document.getElementById('newKwSetting').value='';buildKwSettingList();}
+function addAccount(){const v=document.getElementById('newAcct').value.trim();if(!v)return;const handle=v.startsWith('@')?v:'@'+v.replace(/.*\//,'');accounts.push({handle,name:handle,type:'alpha'});document.getElementById('newAcct').value='';buildSettings();}
+function removeAccount(i){accounts.splice(i,1);buildSettings();}
+
+// AI TERMINAL
+function setQ(q){document.getElementById('termInput').value=q;}
+function setQNav(q){nav('terminal',document.querySelector('.nav-item:nth-child(8)'));setQ(q);runQuery();}
+
+async function runQuery(){
+  const q=document.getElementById('termInput').value.trim();
+  if(!q)return;
+  const out=document.getElementById('termOutput');
+  const think=document.getElementById('thinkRow');
+  out.innerHTML=`<div class="term-prompt">> ${q}</div>`;
+  think.classList.add('show');
+  try{
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        model:'claude-sonnet-4-20250514',
+        max_tokens:1000,
+        system:`You are ALPHAFLOW — an institutional-grade Crypto & DeFi Intelligence Agent. Your purpose is to identify where sophisticated capital is positioning BEFORE retail awareness. 
+
+You operate as a hybrid of: crypto hedge fund analyst, venture capital researcher, on-chain forensic investigator, macro strategist, DeFi analyst, and AI intelligence officer.
+
+Core operating thesis: Wealth is created by identifying infrastructure before liquidity and liquidity before price.
+
+Priority hierarchy: Capital > Builders > Users > Social Hype. Never conflate price action with adoption.
+
+Bitcoin thesis: BTC is evolving from store of value into globally recognized collateral asset and financial infrastructure layer.
+
+Format your response as clean HTML:
+- Section headers: <div style="font-family:'Share Tech Mono',monospace;font-size:10px;color:#00e5ff;letter-spacing:2px;margin:14px 0 6px;border-bottom:1px solid rgba(0,229,255,0.2);padding-bottom:4px;">SECTION HEADER</div>
+- Asset tickers: <span style="color:#ffab00;font-weight:600;">$SYM</span>
+- Positive signals: <span style="color:#00e676">text</span>
+- Risk flags: <span style="color:#ff3d57">text</span>  
+- Conviction scores: <span style="font-family:'Share Tech Mono',monospace;color:#00e5ff;">CONVICTION: X/10</span>
+- Data points: <span style="font-family:'Share Tech Mono',monospace;color:#b388ff;">data</span>
+
+Be dense with intelligence. Separate adoption from attention from price. Prioritize pre-retail signals. Under 500 words.`,
+        messages:[{role:'user',content:q}]
+      })
+    });
+    const data=await res.json();
+    const txt=data.content?.map(b=>b.text||'').join('');
+    out.innerHTML=`<div class="term-prompt">> ${q}</div><div style="font-size:13px;line-height:1.8;color:var(--text);">${txt||'No response.'}</div>`;
+  }catch(e){
+    out.innerHTML=`<div class="term-prompt">> ${q}</div><div style="color:var(--red);font-family:'Share Tech Mono',monospace;font-size:11px;">ERROR: ${e.message}</div>`;
+  }
+  think.classList.remove('show');
+}
+
+// INIT
+buildTicker();
+buildDashboard();
+buildSmartMoney();
+buildWallets();
+buildFeed();
+buildEcosystems();
+buildNarratives();
+buildOpportunities();
+buildSettings();
+
+fetchLivePrices();
+setInterval(fetchLivePrices, 60000);
+setInterval(()=>{document.getElementById('dashTime').textContent=new Date().toUTCString().replace('GMT','UTC');},1000);
+</script>
+</body>
+</html>
